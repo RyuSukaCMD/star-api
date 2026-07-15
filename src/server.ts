@@ -54,25 +54,25 @@ app.use('/uploads', express.static(uploadsDir));
 // ---- API Routes ----
 app.use(config.apiPrefix, routes);
 
-// ---- Swagger Documentation ----
-// Will be set up when swagger module is loaded
-
 // ---- Error Handling ----
 app.use(notFound);
 app.use(errorHandler);
 
-// ---- Server Start ----
-const startServer = async (): Promise<void> => {
-  try {
-    // Connect to MongoDB
-    await DatabaseConnection.connect();
+// ---- Server Start (only in non-serverless environments) ----
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 
-    // Connect to Redis (optional - won't crash if unavailable)
-    await RedisCache.connect();
+if (!isServerless) {
+  const startServer = async (): Promise<void> => {
+    try {
+      // Connect to MongoDB
+      await DatabaseConnection.connect();
 
-    // Start Express server
-    app.listen(config.port, config.host, () => {
-      console.log(`
+      // Connect to Redis (optional - won't crash if unavailable)
+      await RedisCache.connect();
+
+      // Start Express server
+      app.listen(config.port, config.host, () => {
+        console.log(`
 ╔══════════════════════════════════════════════════════╗
 ║                    StarNova API                      ║
 ║           High Performance REST API Platform          ║
@@ -84,43 +84,43 @@ const startServer = async (): Promise<void> => {
 ║  Redis:      ${(RedisCache.getStatus() ? '🟢 Connected' : '⚫ Disabled').padEnd(35)}║
 ║  API:        http://${config.host}:${config.port}${config.apiPrefix}        ║
 ╚══════════════════════════════════════════════════════╝
-      `);
+        `);
 
-      logger.info(`Server started on port ${config.port}`);
-      logger.info(`Environment: ${config.nodeEnv}`);
-      logger.info(`API Base URL: http://${config.host}:${config.port}${config.apiPrefix}`);
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
+        logger.info(`Server started on port ${config.port}`);
+        logger.info(`Environment: ${config.nodeEnv}`);
+        logger.info(`API Base URL: http://${config.host}:${config.port}${config.apiPrefix}`);
+      });
+    } catch (error) {
+      logger.error('Failed to start server:', error);
+      process.exit(1);
+    }
+  };
+
+  // Graceful shutdown
+  const shutdown = async (signal: string): Promise<void> => {
+    logger.info(`${signal} received. Shutting down gracefully...`);
+    
+    await DatabaseConnection.disconnect();
+    await RedisCache.disconnect();
+    
+    process.exit(0);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
     process.exit(1);
-  }
-};
+  });
 
-// Graceful shutdown
-const shutdown = async (signal: string): Promise<void> => {
-  logger.info(`${signal} received. Shutting down gracefully...`);
-  
-  await DatabaseConnection.disconnect();
-  await RedisCache.disconnect();
-  
-  process.exit(0);
-};
+  process.on('unhandledRejection', (reason) => {
+    logger.error('Unhandled Rejection:', reason);
+  });
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+  startServer();
+}
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled Rejection:', reason);
-});
-
-// Export for testing
+// Export for Vercel serverless & testing
 export default app;
-
-// Start server
-startServer();
