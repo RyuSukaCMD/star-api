@@ -117,7 +117,7 @@ const apiKeySchema = new Schema<IApiKeyDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform(_doc, ret) {
+      transform(_doc: any, ret: any) {
         delete ret.__v;
         return ret;
       },

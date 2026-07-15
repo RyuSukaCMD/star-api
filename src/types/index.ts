@@ -180,8 +180,8 @@ export interface IRequestLog {
 
 // ---- Middleware Types ----
 export interface AuthenticatedRequest extends Request {
-  user?: IUser;
-  apiKey?: IApiKey;
+  user?: any;
+  apiKey?: any;
   requestId?: string;
   startTime?: number;
 }

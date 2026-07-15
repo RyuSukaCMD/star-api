@@ -87,11 +87,16 @@ class DatabaseConnection {
       if (mongoose.connection.readyState !== 1) {
         return { status: 'disconnected', responseTime: Date.now() - start, connections: 0 };
       }
-      await mongoose.connection.db.admin().ping();
+      const db = mongoose.connection.db;
+      if (!db) {
+        return { status: 'disconnected', responseTime: Date.now() - start, connections: 0 };
+      }
+      await db.admin().ping();
+      const connCount = mongoose.connection.readyState === 1 ? 1 : 0;
       return {
         status: 'healthy',
         responseTime: Date.now() - start,
-        connections: mongoose.connection.states.connected,
+        connections: connCount,
       };
     } catch (error) {
       return { status: 'unhealthy', responseTime: Date.now() - start, connections: 0 };

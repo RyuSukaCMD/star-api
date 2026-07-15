@@ -107,7 +107,7 @@ class ApiKeyService {
     if (data.name) key.name = data.name;
     if (data.dailyLimit) key.dailyLimit = data.dailyLimit;
     if (data.monthlyLimit) key.monthlyLimit = data.monthlyLimit;
-    if (data.expiresAt !== undefined) key.expiresAt = data.expiresAt;
+    if (data.expiresAt !== undefined) key.expiresAt = data.expiresAt as Date | undefined;
     if (data.whitelistIps) key.whitelistIps = data.whitelistIps;
     if (data.permissions) key.permissions = data.permissions;
 

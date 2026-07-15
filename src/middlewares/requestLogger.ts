@@ -118,6 +118,6 @@ export const ipLogger = (
   next: NextFunction,
 ): void => {
   const clientIp = requestIp.getClientIp(req) || req.ip || 'unknown';
-  req.ip = clientIp;
+  (req as any).clientIp = clientIp;
   next();
 };
